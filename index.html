@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cap Lab · Custom Hat Designer</title>
+<meta name="description" content="Build your own cap in 3D — pick a fit, colors, patches and custom embroidery, then share your design with a link." />
+<meta name="theme-color" content="#13224a" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧢</text></svg>" />
+
+<!-- Link previews for when a design gets shared into chat apps. -->
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Cap Lab · Custom Hat Designer" />
+<meta property="og:description" content="Build your own cap in 3D — fits, colors, patches and custom embroidery. Spin it, then share it." />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Archivo+Black&family=Bebas+Neue&family=Pacifico&family=Playfair+Display:wght@700;900&family=Permanent+Marker&family=Graduate&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+  <div class="blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🧢</span>
+      <div>
+        <h1>CAP LAB</h1>
+        <p>Build your perfect lid</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="chip-btn" id="btnSpin" aria-pressed="true">🔄 Auto-spin: ON</button>
+      <button class="chip-btn" id="btnReset">🎯 Reset view</button>
+      <button class="chip-btn" id="btnRandom">🎲 Surprise me</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ===== Controls ===== -->
+    <section class="panel panel-left">
+      <div class="card">
+        <h2><span class="step">1</span> Pick your fit</h2>
+        <div class="style-grid" id="styleGrid"></div>
+        <div class="spec-chips" id="specChips"></div>
+        <p class="hint" id="styleBlurb"></p>
+        <p class="hint" id="styleFabric"></p>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span> Size it up</h2>
+        <div class="pill-row" id="sizeRow"></div>
+        <p class="hint">Not sure? S/M fits most. Fitted sizes are true to hat size.</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">3</span> Colors</h2>
+        <div class="swatch-block">
+          <label>Crown</label>
+          <div class="swatches" id="crownSwatches"></div>
+        </div>
+        <div class="swatch-block">
+          <label>Bill</label>
+          <div class="swatches" id="billSwatches"></div>
+        </div>
+        <div class="swatch-block" id="meshBlock" hidden>
+          <label>Mesh back</label>
+          <div class="swatches" id="meshSwatches"></div>
+        </div>
+        <div class="swatch-block">
+          <label>Button + stitching</label>
+          <div class="swatches" id="accentSwatches"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 3D Stage ===== -->
+    <section class="stage">
+      <div id="viewport"></div>
+      <div class="stage-overlay">
+        <div class="view-buttons">
+          <button data-view="front">Front</button>
+          <button data-view="left">Left</button>
+          <button data-view="right">Right</button>
+          <button data-view="back">Back</button>
+          <button data-view="top">Top</button>
+        </div>
+        <p class="drag-hint">drag to spin · scroll to zoom</p>
+      </div>
+      <div class="loading" id="loading">Warming up the 3D studio…</div>
+    </section>
+
+    <!-- ===== Patches + checkout ===== -->
+    <section class="panel panel-right">
+      <div class="card">
+        <h2><span class="step">4</span> Design gallery</h2>
+        <p class="hint" style="margin:-6px 0 10px">Not sure what you want? Browse the gallery or search thousands of designs.</p>
+        <input class="search" id="patchSearch" type="search" placeholder="🔍 Search designs — lion, star, rocket…" />
+        <div class="tabs" id="leagueTabs"></div>
+        <div class="patch-grid" id="patchGrid"></div>
+        <p class="hint" id="patchCount"></p>
+        <div class="placement">
+          <label>Placement</label>
+          <div class="pill-row small" id="placementRow"></div>
+        </div>
+        <div class="placement">
+          <label>Patch type</label>
+          <div class="pill-row small" id="decoRow"></div>
+        </div>
+        <div class="applied" id="appliedList"></div>
+        <p class="hint">Patches are original Cap Lab art inspired by each sport — not official team logos.</p>
+      </div>
+
+      <!-- ===== Custom embroidery ===== -->
+      <div class="card">
+        <h2><span class="step">5</span> Custom embroidery</h2>
+        <p class="hint" style="margin:-6px 0 10px">Stitch your own words — a name, a date, a nickname, an inside joke.</p>
+
+        <label class="field">
+          <span>Your text</span>
+          <textarea id="embText" rows="2" placeholder="e.g. EST.&#10;2026" autocomplete="off" spellcheck="false"></textarea>
+        </label>
+        <div class="emb-text-meta">
+          <p class="hint" id="embCount">0 / 22 characters</p>
+          <button class="linkbtn" id="embAddLine" type="button">+ Stack a line</button>
+        </div>
+        <p class="hint">Press Enter to stack another line — up to 3 rows, 22 characters each.</p>
+
+        <div class="placement">
+          <label>Placement</label>
+          <div class="pill-row small" id="embPlacementRow"></div>
+        </div>
+
+        <div class="placement">
+          <label>Font</label>
+          <div class="font-grid" id="embFontRow"></div>
+        </div>
+
+        <div class="placement">
+          <label>Size</label>
+          <div class="pill-row small" id="embSizeRow"></div>
+        </div>
+
+        <div class="swatch-block">
+          <label>Thread color</label>
+          <div class="swatches" id="embColorSwatches"></div>
+        </div>
+
+        <div class="emb-preview-wrap">
+          <span class="emb-preview-tag">Stitch preview</span>
+          <canvas id="embPreview" width="620" height="150"></canvas>
+        </div>
+
+        <div class="applied" id="embAppliedList"></div>
+        <p class="hint">Each decorated side is priced like a patch side — first side $4, additional sides $10.</p>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">6</span> Your order</h2>
+        <div class="qty-row">
+          <div>
+            <p class="reward-label">Quantity</p>
+            <p class="reward-sub" id="qtyNote">Order 5 or more and save 10%</p>
+          </div>
+          <div class="stepper">
+            <button type="button" id="qtyMinus">−</button>
+            <b id="qtyCount">1</b>
+            <button type="button" id="qtyPlus">+</button>
+          </div>
+        </div>
+        <div class="price-lines" id="priceLines"></div>
+        <p class="hint">First decorated side is $4, each additional side is $10. Patches require approval of a design proof (sent within 5 days); approved patch orders produce &amp; ship in 4–5 weeks.</p>
+      </div>
+
+      <div class="card loyalty">
+        <h2><span class="step">7</span> Access Pass</h2>
+        <div class="field-row">
+          <label class="field">
+            <span>First name</span>
+            <input id="nameInput" type="text" placeholder="Sms" autocomplete="given-name" />
+          </label>
+          <label class="field">
+            <span>Points</span>
+            <input id="pointsInput" type="number" min="0" step="1" placeholder="689" />
+          </label>
+        </div>
+
+        <div class="pass-card" id="passCard" hidden>
+          <div class="pass-head">
+            <div>
+              <p class="pass-crumb">Premium Account</p>
+              <h3 id="passGreeting">Hi there!</h3>
+            </div>
+            <span class="pass-status">● Account Active</span>
+          </div>
+
+          <div class="pass-body">
+            <div class="pass-tier">
+              <p class="pass-tier-line">Your Tier : <b id="passTier">Basic</b></p>
+              <p class="pass-meta">Enrollment date : <b id="passEnrolled">—</b></p>
+              <p class="pass-meta">Tier Status Expires : <b>Never</b></p>
+              <div class="tier-bar"><i id="tierFill"></i></div>
+              <div class="tier-labels"><span>Basic</span><span>Premium</span></div>
+              <p class="pass-meta" id="tierProgressNote"></p>
+            </div>
+            <div class="pass-stats">
+              <div class="stat">
+                <span class="stat-icon">🏆</span>
+                <div>
+                  <p>Point Balance</p>
+                  <b id="statPoints">0 Points</b>
+                </div>
+              </div>
+              <div class="stat">
+                <span class="stat-icon">🎖️</span>
+                <div>
+                  <p>Rewards Available</p>
+                  <b id="statRewards">0</b>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="reward-apply">
+            <div>
+              <p class="reward-label">Apply rewards to this hat</p>
+              <p class="reward-sub" id="rewardSub">Each reward = $10 off</p>
+            </div>
+            <div class="stepper">
+              <button type="button" id="rewardMinus">−</button>
+              <b id="rewardCount">0</b>
+              <button type="button" id="rewardPlus">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="points-readout" id="pointsReadout"></div>
+
+        <label class="field">
+          <span>Mobile number</span>
+          <input id="phoneInput" type="tel" placeholder="(555) 123-4567" />
+        </label>
+        <button class="big-btn" id="btnText">📲 Text me this design</button>
+        <button class="big-btn alt" id="btnShare">🔗 Copy share link</button>
+        <p class="hint">The share link holds the whole hat — your crew can open it and keep tweaking. Your name, number and points stay private.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="summary" id="summaryBar"></footer>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <div class="modal">
+      <button class="modal-close" id="modalClose">✕</button>
+      <div class="phone">
+        <div class="phone-top">Messages · CAP LAB</div>
+        <div class="bubble" id="smsBubble"></div>
+        <div class="phone-bottom">Delivered just now</div>
+      </div>
+      <div class="sharebox">
+        <input id="shareUrl" readonly aria-label="Share link" />
+        <button type="button" id="btnCopyLink">Copy</button>
+      </div>
+      <button class="big-btn" id="modalDone">Back to designing</button>
+    </div>
+  </div>
+
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
