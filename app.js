@@ -2224,6 +2224,45 @@ function confettiBurst() {
   }
 }
 
+/* ---------- theme ---------- */
+
+const THEME_KEY = 'caplab.theme';
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+function storedTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; }
+}
+
+// The 3D lighting is deliberately NOT themed — this is a product designer, so the
+// hat has to read true in both modes. Only the page chrome behind it changes.
+function applyTheme(mode) {
+  const dark = mode === 'dark';
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#120f24' : '#13224a');
+  const b = el('btnTheme');
+  if (b) {
+    b.setAttribute('aria-pressed', String(dark));
+    b.textContent = dark ? '☀️ Light' : '🌙 Dark';
+  }
+  // Both ground shadows are black, which turns to mud on a dark backdrop.
+  shadowPlane.material.opacity = dark ? 0.45 : 1;
+  castShadowPlane.material.opacity = dark ? 0.12 : 0.26;
+}
+
+applyTheme(storedTheme() || (darkQuery.matches ? 'dark' : 'light'));
+
+el('btnTheme').onclick = () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+  applyTheme(next);
+};
+
+// Follow the OS only while the user hasn't made an explicit choice.
+darkQuery.addEventListener('change', e => {
+  if (!storedTheme()) applyTheme(e.matches ? 'dark' : 'light');
+});
+
 /* ---------- events ---------- */
 
 function syncSpinBtn() {

@@ -205,6 +205,42 @@ discount at 5+**. Then subtract Access Pass rewards.
 - Every modal needs a working close button, backdrop click and Escape key.
 - Add description, theme-color, emoji favicon, and OG/Twitter meta tags.
 
+### 11. Light and dark mode
+
+- A **🌙 Dark / ☀️ Light** chip button in the top bar, next to auto-spin / reset /
+  surprise-me. It toggles `document.documentElement.dataset.theme`.
+- Default to the OS preference via `matchMedia('(prefers-color-scheme: dark)')`.
+  Once the user presses the button, persist the choice to
+  `localStorage['caplab.theme']` and stop following the OS from then on.
+- **No-flash requirement:** resolve the theme in a small *inline, synchronous*
+  `<script>` in `<head>` placed **before** the stylesheet link. The main script is
+  a deferred ES module, so wiring the theme there alone makes dark users see a
+  white flash on every load.
+- Drive everything from CSS custom properties: a `:root` block of semantic tokens
+  and a `[data-theme="dark"]` block that overrides them. Also set `color-scheme`
+  on both so native form controls and scrollbars match. Do not hardcode surface
+  colors in individual rules.
+- Token groups that matter: `--ink` / `--on-ink`, `--paper`, `--surface` 1–4,
+  `--hairline`, `--invert-bg` / `--invert-fg`, accent pops, the Access Pass navy
+  set, `--stage-bg`, the background blobs, `--scrim`, and `--shadow-color`.
+- Three traps worth calling out explicitly:
+  - **`--on-bright` must NOT flip.** Yellow / cyan / lime fills stay bright in
+    both themes, so text on them is always dark. Affects pressed pills, pressed
+    style cards, pressed font buttons, chip hover, steppers, the modal close
+    button and the alt CTA.
+  - **`--invert-bg` / `--invert-fg` need to exist** for panels that are
+    intentionally dark in light mode (order summary, grand total, phone header,
+    drag ghost tag). If they just used `--ink` they'd invert to near-white in dark
+    mode and their yellow accent text would be unreadable.
+  - **Hard shadows need their own `--shadow-color`**, near-black in dark mode. If
+    they reuse `--ink` the 6px offset shadows become near-white in dark mode and
+    the whole neo-brutalist look falls apart.
+- **Do not theme the 3D lighting.** This is a product designer — the hat's colors
+  must read identically in both modes. Only the CSS stage backdrop changes (the
+  renderer is created with `alpha: true`). The one exception: dial back the black
+  ground-shadow planes in dark mode so they don't turn to mud.
+- Also update the `theme-color` meta tag when the theme changes.
+
 ---
 
 ## Gotchas worth repeating to the rebuilder

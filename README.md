@@ -25,6 +25,16 @@ styles.css    all styling
 app.js        catalog, 3D geometry, rendering, pricing, sharing
 ```
 
+## Light & dark mode
+
+The **🌙 Dark / ☀️ Light** button in the top bar flips the theme. On first visit the
+app follows your OS setting; once you press the button your choice is remembered in
+`localStorage` (`caplab.theme`) and the OS setting is ignored from then on.
+
+The 3D hat's lighting is deliberately **identical** in both themes — this is a product
+designer, so the colors you pick have to read true. Only the page chrome and the stage
+backdrop change.
+
 ## Running it locally
 
 Open `index.html` in a browser. That's it.
