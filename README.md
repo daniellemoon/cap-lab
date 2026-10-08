@@ -1,8 +1,20 @@
 # Cap Lab — Interactive Custom Hat Designer
 
-A 3D custom hat builder. Pick a style and fit, choose colors, add patches from the
-design gallery, stitch your own embroidered lettering, spin the cap around, and
-share the result with a link.
+A 3D custom hat builder. Pick a style and fit, choose colors, drag patches from the
+design gallery onto the cap, stitch your own embroidered lettering, spin it around,
+and share the result with a link.
+
+## Adding patches
+
+Two ways, both doing the same thing:
+
+- **Drag** a design from the gallery onto the hat. A ring snaps to the nearest
+  spot as you move, and a tag tells you where it will land. Only spots currently
+  facing you are targetable, so a patch never lands on the hidden side.
+- **Tap** a design to drop it on whichever placement is selected.
+
+The hat stops auto-spinning while you drag, then turns to show off the side you
+dropped on.
 
 Built as a plain static site — **no build step, no dependencies to install, no
 server-side code.** Three.js loads from a CDN via an import map.

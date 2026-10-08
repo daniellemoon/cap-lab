@@ -221,6 +221,36 @@ h1, h2 { font-family: "Archivo Black", "Baloo 2", sans-serif; letter-spacing: -0
 .patch-btn:hover { transform: translateY(-3px) rotate(-2deg); }
 .patch-btn canvas { width: 54px; height: 54px; border-radius: 10px; }
 .patch-btn span { font-size: 10px; font-weight: 800; line-height: 1.1; text-align: center; }
+/* Let the gallery scroll vertically on touch while a sideways drag starts a
+   patch drag instead. */
+.patch-btn { touch-action: pan-y; cursor: grab; }
+.patch-btn:active { cursor: grabbing; }
+
+/* ---------- drag a patch onto the hat ---------- */
+.patch-ghost {
+  position: fixed; left: 0; top: 0; z-index: 60;
+  transform: translate(-50%, -50%) rotate(-6deg) scale(.92);
+  pointer-events: none; display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  transition: transform .12s ease;
+}
+.patch-ghost canvas {
+  width: 86px; height: 86px; border-radius: 16px;
+  border: 3px solid var(--ink); box-shadow: 5px 6px 0 rgba(17, 17, 24, .38);
+  background: #fff;
+}
+.patch-ghost.over { transform: translate(-50%, -50%) rotate(0deg) scale(1.06); }
+.ghost-tag {
+  font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+  background: var(--ink); color: #fff; border-radius: 999px; padding: 4px 10px;
+  white-space: nowrap; box-shadow: 2px 2px 0 rgba(17, 17, 24, .3);
+}
+.patch-ghost.over .ghost-tag { background: var(--pop); }
+body.is-dragging-patch { cursor: grabbing; user-select: none; }
+body.is-dragging-patch .patch-btn:hover { transform: none; }
+/* Light up the 3D stage as a drop zone. */
+.stage.drop-armed { outline: 4px dashed var(--pop); outline-offset: -10px; }
+.stage.drop-armed .drag-hint { opacity: 1; color: var(--pop); }
 
 .placement { margin-top: 14px; }
 .placement label { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; opacity: .7; display: block; margin-bottom: 6px; }

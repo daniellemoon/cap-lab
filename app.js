@@ -1250,8 +1250,228 @@ function animate() {
     const e = 1 + Math.sin(t * Math.PI) * 0.22 * (1 - t);
     c.scale.setScalar(t < 1 ? t * e : 1);
   });
+  // pulse the drop target ring while a patch is being dragged
+  if (dropRing.visible) {
+    const k = 1 + Math.sin(now / 140) * 0.07;
+    dropRing.scale.setScalar(dropRing.userData.base * k);
+    dropRing.material.opacity = 0.72 + Math.sin(now / 140) * 0.22;
+  }
   controls.update();
   renderer.render(scene, camera);
+}
+
+/* ============================================================
+   Drag & drop patches straight onto the hat
+   ============================================================ */
+
+// Ring that snaps to whichever placement a dragged patch would land on.
+const dropRing = new THREE.Mesh(
+  new THREE.RingGeometry(0.30, 0.38, 56),
+  new THREE.MeshBasicMaterial({
+    color: 0xff2e88,
+    transparent: true,
+    opacity: 0.9,
+    side: THREE.DoubleSide,
+    depthTest: false,
+  })
+);
+dropRing.renderOrder = 999;
+dropRing.visible = false;
+dropRing.userData.base = 1;
+scene.add(dropRing);
+
+const drag = {
+  active: false, patch: null, pointerId: null, btn: null,
+  startX: 0, startY: 0, ghost: null, target: null, didDrag: false,
+  spinWasOn: false,
+};
+
+/**
+ * Project each placement anchor to screen space, discarding any whose surface
+ * points away from the camera — so a patch can never be dropped onto the side
+ * of the hat the customer can't currently see.
+ */
+function liveAnchors() {
+  const rect = renderer.domElement.getBoundingClientRect();
+  hatGroup.updateMatrixWorld(true);
+  const out = [];
+  PLACEMENTS.forEach(pl => {
+    const a = patchAnchors[pl.id];
+    if (!a) return;
+    const world = a.position.clone().applyMatrix4(hatGroup.matrixWorld);
+    const normal = new THREE.Vector3(0, 0, 1)
+      .applyQuaternion(a.quaternion)
+      .applyQuaternion(hatGroup.quaternion)
+      .normalize();
+    const toCamera = camera.position.clone().sub(world).normalize();
+    if (normal.dot(toCamera) < 0.15) return;
+    const p = world.clone().project(camera);
+    if (p.z > 1) return;
+    out.push({
+      id: pl.id, label: pl.label, view: pl.view, anchor: a, world,
+      x: rect.left + (p.x * 0.5 + 0.5) * rect.width,
+      y: rect.top + (-p.y * 0.5 + 0.5) * rect.height,
+    });
+  });
+  return out;
+}
+
+// Nearest visible placement to the cursor, but only while over the 3D stage.
+function nearestAnchor(cx, cy) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  if (cx < rect.left || cx > rect.right || cy < rect.top || cy > rect.bottom) return null;
+  let best = null, bestDist = Infinity;
+  liveAnchors().forEach(a => {
+    const d = Math.hypot(a.x - cx, a.y - cy);
+    if (d < bestDist) { bestDist = d; best = a; }
+  });
+  return best;
+}
+
+function showDropRing(target) {
+  if (!target) { dropRing.visible = false; return; }
+  dropRing.visible = true;
+  dropRing.position.copy(target.world);
+  dropRing.quaternion.copy(hatGroup.quaternion).multiply(target.anchor.quaternion);
+  dropRing.userData.base = hatGroup.scale.x * target.anchor.scale;
+  dropRing.scale.setScalar(dropRing.userData.base);
+}
+
+function makeGhost(patch) {
+  const g = document.createElement('div');
+  g.className = 'patch-ghost';
+  const c = document.createElement('canvas');
+  c.width = c.height = 160;
+  drawPatch(c.getContext('2d'), 160, patch);
+  const tag = document.createElement('span');
+  tag.className = 'ghost-tag';
+  tag.textContent = 'Drag onto the hat';
+  g.append(c, tag);
+  document.body.appendChild(g);
+  return g;
+}
+
+function beginDrag(ev) {
+  drag.active = true;
+  drag.didDrag = true;
+  drag.ghost = makeGhost(drag.patch);
+  drag.spinWasOn = controls.autoRotate;
+  controls.autoRotate = false;   // hold the hat still so the target can't drift
+  camTarget = null;
+  document.body.classList.add('is-dragging-patch');
+  document.querySelector('.stage')?.classList.add('drop-armed');
+  moveDrag(ev);
+}
+
+function moveDrag(ev) {
+  if (!drag.ghost) return;
+  drag.ghost.style.left = `${ev.clientX}px`;
+  drag.ghost.style.top = `${ev.clientY}px`;
+  const target = nearestAnchor(ev.clientX, ev.clientY);
+  drag.target = target;
+  showDropRing(target);
+  drag.ghost.classList.toggle('over', !!target);
+  const tag = drag.ghost.querySelector('.ghost-tag');
+  tag.textContent = target ? `Drop on ${target.label}` : 'Drag onto the hat';
+}
+
+function endDrag(commit) {
+  const target = drag.target;
+  const patch = drag.patch;
+
+  if (drag.ghost) drag.ghost.remove();
+  dropRing.visible = false;
+  document.body.classList.remove('is-dragging-patch');
+  document.querySelector('.stage')?.classList.remove('drop-armed');
+
+  const wasActive = drag.active;
+  drag.active = false;
+  drag.ghost = null;
+  drag.target = null;
+  releasePointer();
+
+  if (!wasActive) return;
+
+  if (commit && target && patch) {
+    design.patches[target.id] = patch.id;
+    activePlacement = target.id;
+    renderPatches();
+    applyPatches();
+    renderSummary();
+    flyTo(target.view);   // also stops auto-spin, so leave spinWasOn alone
+    confettiBurst();
+  } else {
+    controls.autoRotate = drag.spinWasOn;
+    syncSpinBtn();
+  }
+}
+
+// Tracking happens on window, not the card: a fast flick can leave the card
+// before it ever sees a pointermove, which would swallow the drag.
+function onWindowPointerMove(ev) {
+  if (drag.pointerId !== ev.pointerId) return;
+
+  if (drag.active) {
+    moveDrag(ev);
+    ev.preventDefault();
+    return;
+  }
+
+  const dx = ev.clientX - drag.startX;
+  const dy = ev.clientY - drag.startY;
+  if (Math.hypot(dx, dy) < 8) return;
+
+  // On touch, a mostly-vertical swipe means the user is scrolling the gallery.
+  if (ev.pointerType !== 'mouse' && Math.abs(dy) > Math.abs(dx)) {
+    releasePointer();
+    return;
+  }
+
+  try { drag.btn?.setPointerCapture(ev.pointerId); } catch { /* card may be gone */ }
+  beginDrag(ev);
+  ev.preventDefault();
+}
+
+function onWindowPointerUp(ev) {
+  if (drag.pointerId !== ev.pointerId) return;
+  if (drag.active) endDrag(true);
+  else releasePointer();
+}
+
+function onWindowPointerCancel(ev) {
+  if (drag.pointerId !== ev.pointerId) return;
+  if (drag.active) endDrag(false);
+  else releasePointer();
+}
+
+function releasePointer() {
+  drag.pointerId = null;
+  drag.btn = null;
+  drag.patch = null;
+  window.removeEventListener('pointermove', onWindowPointerMove);
+  window.removeEventListener('pointerup', onWindowPointerUp);
+  window.removeEventListener('pointercancel', onWindowPointerCancel);
+}
+
+// Turn a gallery card into a drag source. Pointer events are used (rather than
+// HTML5 drag-and-drop) so the same code path works for mouse, pen and touch.
+function makePatchDraggable(btn, patch) {
+  btn.addEventListener('pointerdown', ev => {
+    if (ev.button !== undefined && ev.button !== 0) return;
+    if (drag.active) return;
+    releasePointer();
+    drag.patch = patch;
+    drag.btn = btn;
+    drag.pointerId = ev.pointerId;
+    drag.startX = ev.clientX;
+    drag.startY = ev.clientY;
+    drag.didDrag = false;
+    window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
+    window.addEventListener('pointerup', onWindowPointerUp);
+    window.addEventListener('pointercancel', onWindowPointerCancel);
+  });
+
+  btn.addEventListener('dragstart', ev => ev.preventDefault());
 }
 
 /* ============================================================
@@ -1386,7 +1606,10 @@ function renderPatches() {
     const label = document.createElement('span');
     label.textContent = p.name;
     b.append(c, label);
+    b.title = `${p.name} — click to add to ${activePlacement}, or drag onto the hat`;
     b.onclick = () => {
+      // A drag already placed the patch; don't also fire the click shortcut.
+      if (drag.didDrag) { drag.didDrag = false; return; }
       design.patches[activePlacement] = p.id;
       renderApplied();
       applyPatches();
@@ -1394,6 +1617,7 @@ function renderPatches() {
       const pl = PLACEMENTS.find(x => x.id === activePlacement);
       if (pl) flyTo(pl.view);
     };
+    makePatchDraggable(b, p);
     grid.appendChild(b);
   });
 

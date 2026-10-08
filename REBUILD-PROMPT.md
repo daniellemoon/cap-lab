@@ -103,6 +103,27 @@ basketball/football/soccer/hockey/baseball).
 - Stars render as true two-tone multi-point stars (4, 5, 6 and 8 point).
 - Category filter chips + a search box.
 - **Placements:** Front, Left Side, Right Side, Back, Bill — one patch per spot.
+- **Drag and drop patches directly onto the 3D hat**, in addition to tap-to-apply:
+  - Use **pointer events**, not HTML5 drag-and-drop, so mouse, pen and touch all
+    share one code path.
+  - Track `pointermove`/`pointerup` on **`window`**, not on the card — a fast
+    flick leaves the card before it ever fires a move event, and the drag would
+    be swallowed.
+  - Start the drag past an 8px threshold so a plain click still works as the
+    tap-to-apply shortcut; suppress the click that follows a real drag.
+  - On touch, treat a mostly-vertical swipe as the user scrolling the gallery
+    and let it through (`touch-action: pan-y` on the card).
+  - Resolve the drop target by projecting every placement anchor to screen space
+    and taking the nearest one, **culling anchors whose surface normal faces away
+    from the camera** so a patch can't land on the hidden side of the hat.
+  - Show live feedback: a cursor-following ghost of the patch, a "Drop on
+    {placement}" tag, and a pulsing ring in 3D snapped to the target anchor
+    (scaled by `hatGroup.scale × anchor.scale`, oriented to the surface normal).
+  - Pause auto-rotate during the drag so the target can't drift; on a successful
+    drop fly the camera to that side and fire confetti. On a miss, restore the
+    previous spin state and apply nothing.
+  - Keep the drop ring in `scene`, not `hatGroup` — rebuilding the hat clears
+    and disposes every `hatGroup` child.
 - **Decoration methods** with upcharges: Embroidered $0, Print Stitch +$2,
   Woven +$3, Sublimated +$3, Metflex +$5, Leather +$5, PVC/Rubber +$5,
   Chenille +$6.
