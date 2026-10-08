@@ -25,6 +25,20 @@ styles.css    all styling
 app.js        catalog, 3D geometry, rendering, pricing, sharing
 ```
 
+## Team colorways
+
+Under the hat there's a strip of one-tap colorways grouped by Hoops / Football /
+Baseball / Soccer. Tapping one sets the crown, bill, accent and mesh together, and
+you can still fine-tune any of them afterwards in the Colors card. **Hide** collapses
+the strip (remembered in `localStorage`) and the hat grows to fill the space.
+
+Colorways are named for the city or the colorway rather than the club, for the same
+reason the patch gallery ships original motifs instead of real logos.
+
+Because a colorway can set a color that isn't one of a style's eight stock swatches,
+the swatch grids append whatever color is currently on the hat — so the active
+selection always shows, and your colors survive switching between fits.
+
 ## Light & dark mode
 
 The **🌙 Dark / ☀️ Light** button in the top bar flips the theme. On first visit the

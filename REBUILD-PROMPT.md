@@ -199,13 +199,38 @@ discount at 5+**. Then subtract Access Pass rewards.
 - Bold, playful, neo-brutalist styling — thick borders, hard shadows, bright
   accent colors, chunky buttons.
 - Live order summary, a "Surprise me" randomizer, and a reset.
+- Confetti is for *moments*, not edits — fire it when a design is shared/texted and
+  when someone arrives from a share link, never on every color or patch change.
 - Include a global `[hidden] { display: none !important; }` rule — without it,
   modals and conditional blocks leak through and a pop-up can get stuck on
   screen with no way to dismiss it.
 - Every modal needs a working close button, backdrop click and Escape key.
 - Add description, theme-color, emoji favicon, and OG/Twitter meta tags.
 
-### 11. Light and dark mode
+### 11. Team colorways strip (under the hat)
+
+- The center column is a flex column: the 3D stage **grows to fill** the leftover
+  height and a colorway strip is pinned beneath it. Don't give the stage a fixed
+  height with `align-items: start`, or tall screens get dead space under the hat.
+  Give the column a `min-height` floor so short viewports scroll instead of
+  overflowing.
+- ~20 one-tap colorways grouped into Hoops / Football / Baseball / Soccer tabs, in
+  a horizontally scrolling row. Each is a small cap glyph (crown color on top, bill
+  below, accent dot on the squatchee) plus a name.
+- One tap sets crown + bill + accent + mesh together. Show a pressed state when the
+  current design matches a colorway exactly.
+- Name them for the **city or the colorway, not the club** — same reasoning as
+  shipping original patch motifs instead of real logos.
+- A Hide/Show toggle that collapses the strip, persisted to `localStorage`. The 3D
+  viewport should already be driven by a `ResizeObserver`, so collapsing it
+  re-renders at the new height with no extra wiring.
+- **Important interaction with the per-style palettes:** colorways deliberately use
+  hexes outside a style's eight stock swatches. So the swatch grids must append
+  whatever color is currently active if it isn't already in the list, otherwise
+  nothing shows as selected. Once that's in place, stop resetting crown/bill when
+  the user switches fits — colors should carry across.
+
+### 12. Light and dark mode
 
 - A **🌙 Dark / ☀️ Light** chip button in the top bar, next to auto-spin / reset /
   surprise-me. It toggles `document.documentElement.dataset.theme`.

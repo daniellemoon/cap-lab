@@ -96,21 +96,35 @@
       </div>
     </section>
 
-    <!-- ===== 3D Stage ===== -->
-    <section class="stage">
-      <div id="viewport"></div>
-      <div class="stage-overlay">
-        <div class="view-buttons">
-          <button data-view="front">Front</button>
-          <button data-view="left">Left</button>
-          <button data-view="right">Right</button>
-          <button data-view="back">Back</button>
-          <button data-view="top">Top</button>
+    <!-- ===== 3D Stage + colorways ===== -->
+    <div class="center">
+      <section class="stage">
+        <div id="viewport"></div>
+        <div class="stage-overlay">
+          <div class="view-buttons">
+            <button data-view="front">Front</button>
+            <button data-view="left">Left</button>
+            <button data-view="right">Right</button>
+            <button data-view="back">Back</button>
+            <button data-view="top">Top</button>
+          </div>
+          <p class="drag-hint">drag to spin · scroll to zoom · drop patches here</p>
         </div>
-        <p class="drag-hint">drag to spin · scroll to zoom · drop patches here</p>
-      </div>
-      <div class="loading" id="loading">Warming up the 3D studio…</div>
-    </section>
+        <div class="loading" id="loading">Warming up the 3D studio…</div>
+      </section>
+
+      <section class="card colorways">
+        <div class="colorways-head">
+          <h2><span class="step">🎨</span> Team colorways</h2>
+          <button class="chip-btn tiny" id="btnColorways" aria-expanded="true" aria-controls="colorwayBody">Hide</button>
+        </div>
+        <div id="colorwayBody">
+          <p class="hint">One tap sets your crown, bill and accent. Fine-tune any of it afterwards in Colors.</p>
+          <div class="tabs" id="colorwayTabs"></div>
+          <div class="colorway-row" id="colorwayRow"></div>
+        </div>
+      </section>
+    </div>
 
     <!-- ===== Patches + checkout ===== -->
     <section class="panel panel-right">

@@ -35,6 +35,45 @@ const PALETTES = {
   ],
 };
 
+/**
+ * One-tap team colorways. Named for the city / colorway rather than the club,
+ * for the same reason the patch gallery ships original motifs instead of real
+ * logos. Hexes are free of the per-style palettes on purpose — a colorway is
+ * allowed to put a color on the hat that isn't one of the eight stock swatches.
+ */
+const COLORWAY_LEAGUES = ['Hoops', 'Football', 'Baseball', 'Soccer'];
+
+const COLORWAYS = [
+  // Hoops
+  { id: 'showtime', name: 'LA Showtime', league: 'Hoops', crown: '#552583', bill: '#fdb927', accent: '#fdb927', mesh: '#f3ead9' },
+  { id: 'baysplash', name: 'Bay Splash', league: 'Hoops', crown: '#1d428a', bill: '#ffc72c', accent: '#ffc72c', mesh: '#f3ead9' },
+  { id: 'parquet', name: 'Boston Parquet', league: 'Hoops', crown: '#007a33', bill: '#f3ead9', accent: '#ba9653', mesh: '#f3ead9' },
+  { id: 'buzzcity', name: 'Queen City Buzz', league: 'Hoops', crown: '#00788c', bill: '#1d1160', accent: '#00788c', mesh: '#15151a' },
+  { id: 'ripcity', name: 'Rip City', league: 'Hoops', crown: '#15151a', bill: '#e03a3e', accent: '#f3ead9', mesh: '#15151a' },
+  { id: 'vice', name: 'South Beach Vice', league: 'Hoops', crown: '#98002e', bill: '#f9a01b', accent: '#f9a01b', mesh: '#15151a' },
+
+  // Football
+  { id: 'steeltown', name: 'Steel Town', league: 'Football', crown: '#101820', bill: '#ffb612', accent: '#ffb612', mesh: '#15151a' },
+  { id: 'tundra', name: 'Frozen Tundra', league: 'Football', crown: '#203731', bill: '#ffb612', accent: '#ffb612', mesh: '#f3ead9' },
+  { id: 'silverblack', name: 'Silver & Black', league: 'Football', crown: '#15151a', bill: '#a5acaf', accent: '#a5acaf', mesh: '#15151a' },
+  { id: 'crimsondesert', name: 'Desert Crimson', league: 'Football', crown: '#97233f', bill: '#15151a', accent: '#f3ead9', mesh: '#15151a' },
+  { id: 'emerald', name: 'Emerald City', league: 'Football', crown: '#002244', bill: '#69be28', accent: '#69be28', mesh: '#f3ead9' },
+
+  // Baseball
+  { id: 'pinstripe', name: 'Bronx Pinstripe', league: 'Baseball', crown: '#0c2340', bill: '#0c2340', accent: '#f3ead9', mesh: '#f3ead9' },
+  { id: 'blueheaven', name: 'Blue Heaven', league: 'Baseball', crown: '#005a9c', bill: '#005a9c', accent: '#f3ead9', mesh: '#f3ead9' },
+  { id: 'halo', name: 'Halo Red', league: 'Baseball', crown: '#ba0021', bill: '#003263', accent: '#f3ead9', mesh: '#f3ead9' },
+  { id: 'creamcity', name: 'Cream City Ball', league: 'Baseball', crown: '#12284b', bill: '#ffc52f', accent: '#ffc52f', mesh: '#f3ead9' },
+  { id: 'northside', name: 'North Side Ivy', league: 'Baseball', crown: '#0e3386', bill: '#0e3386', accent: '#cc3433', mesh: '#f3ead9' },
+
+  // Soccer
+  { id: 'reddevil', name: 'Red Devils', league: 'Soccer', crown: '#da291c', bill: '#15151a', accent: '#fbe122', mesh: '#15151a' },
+  { id: 'citysky', name: 'Sky Blue', league: 'Soccer', crown: '#6cabdd', bill: '#1c2c5b', accent: '#1c2c5b', mesh: '#f3ead9' },
+  { id: 'blaugrana', name: 'Blaugrana', league: 'Soccer', crown: '#a50044', bill: '#004d98', accent: '#ffc72c', mesh: '#15151a' },
+  { id: 'merengue', name: 'Merengue White', league: 'Soccer', crown: '#f3ead9', bill: '#00529f', accent: '#febe10', mesh: '#f3ead9' },
+  { id: 'kopred', name: 'Kop Red', league: 'Soccer', crown: '#c8102e', bill: '#c8102e', accent: '#00b2a9', mesh: '#f3ead9' },
+];
+
 const STYLES = {
   clubhouse: {
     id: 'clubhouse',
@@ -1399,7 +1438,6 @@ function endDrag(commit) {
     applyPatches();
     renderSummary();
     flyTo(target.view);   // also stops auto-spin, so leave spinWasOn alone
-    confettiBurst();
   } else {
     controls.autoRotate = drag.spinWasOn;
     syncSpinBtn();
@@ -1499,9 +1537,8 @@ function renderStyles() {
       <span class="price">$${style.price.toFixed(2)}</span>`;
     b.onclick = () => {
       design.style = style.id;
-      const palette = STYLES[style.id].colors;
-      if (!palette.includes(design.crown)) design.crown = palette[0];
-      if (!palette.includes(design.bill)) design.bill = palette[0];
+      // Colors deliberately carry across a fit change — swatch grids append the
+      // active color, so an off-palette colorway survives switching styles.
       if (style.strap !== 'none' && design.size.startsWith('7')) design.size = 'ml';
       if (style.strap === 'none' && !design.size.startsWith('7')) design.size = '714';
       renderAll();
@@ -1551,13 +1588,70 @@ function renderSwatches(containerId, colors, key) {
   });
 }
 
+// A team colorway can set a color that isn't one of the style's eight stock
+// swatches. Append it so the grid always shows what's actually on the hat.
+function withActive(colors, key) {
+  return colors.includes(design[key]) ? colors : [...colors, design[key]];
+}
+
 function renderColors() {
   const style = STYLES[design.style];
-  renderSwatches('crownSwatches', style.colors, 'crown');
-  renderSwatches('billSwatches', style.colors, 'bill');
+  renderSwatches('crownSwatches', withActive(style.colors, 'crown'), 'crown');
+  renderSwatches('billSwatches', withActive(style.colors, 'bill'), 'bill');
   el('meshBlock').hidden = !style.meshBack;
-  if (style.meshBack) renderSwatches('meshSwatches', ['#f3ead9', '#15151a', '#9aa0ab', '#8ed8f8', '#ff4f9a', '#ffcf33'], 'mesh');
-  renderSwatches('accentSwatches', PALETTES.accent, 'accent');
+  if (style.meshBack) {
+    renderSwatches('meshSwatches',
+      withActive(['#f3ead9', '#15151a', '#9aa0ab', '#8ed8f8', '#ff4f9a', '#ffcf33'], 'mesh'), 'mesh');
+  }
+  renderSwatches('accentSwatches', withActive(PALETTES.accent.map(c => c.hex), 'accent'), 'accent');
+}
+
+let activeColorwayLeague = 'Hoops';
+
+function matchesColorway(cw) {
+  const style = STYLES[design.style];
+  return design.crown === cw.crown && design.bill === cw.bill && design.accent === cw.accent
+    && (!style.meshBack || design.mesh === cw.mesh);
+}
+
+function renderColorways() {
+  const tabs = el('colorwayTabs');
+  tabs.innerHTML = '';
+  COLORWAY_LEAGUES.forEach(league => {
+    const b = document.createElement('button');
+    b.className = 'tab';
+    b.type = 'button';
+    b.textContent = league;
+    b.setAttribute('aria-pressed', String(activeColorwayLeague === league));
+    b.onclick = () => { activeColorwayLeague = league; renderColorways(); };
+    tabs.appendChild(b);
+  });
+
+  const row = el('colorwayRow');
+  row.innerHTML = '';
+  COLORWAYS.filter(c => c.league === activeColorwayLeague).forEach(cw => {
+    const b = document.createElement('button');
+    b.className = 'colorway-btn';
+    b.type = 'button';
+    b.title = `${cw.name} — tap to apply`;
+    b.setAttribute('aria-pressed', String(matchesColorway(cw)));
+    b.innerHTML =
+      `<span class="cw-chip" aria-hidden="true">
+         <i class="cw-crown" style="background:${cw.crown}"></i>
+         <i class="cw-bill" style="background:${cw.bill}"></i>
+         <i class="cw-accent" style="background:${cw.accent}"></i>
+       </span>
+       <span class="cw-name">${cw.name}</span>`;
+    b.onclick = () => {
+      design.crown = cw.crown;
+      design.bill = cw.bill;
+      design.accent = cw.accent;
+      design.mesh = cw.mesh;
+      renderAll();
+      buildHat();
+    };
+    row.appendChild(b);
+  });
 }
 
 function renderPatches() {
@@ -1988,6 +2082,7 @@ function renderAll() {
   renderStyles();
   renderSizes();
   renderColors();
+  renderColorways();
   renderPatches();
   renderEmbroidery();
   renderSummary();
@@ -2226,6 +2321,11 @@ function confettiBurst() {
 
 /* ---------- theme ---------- */
 
+const COLORWAYS_KEY = 'caplab.colorways';
+function storedColorwaysClosed() {
+  try { return localStorage.getItem(COLORWAYS_KEY) === 'closed'; } catch (e) { return false; }
+}
+
 const THEME_KEY = 'caplab.theme';
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -2270,6 +2370,17 @@ function syncSpinBtn() {
   b.setAttribute('aria-pressed', String(controls.autoRotate));
   b.textContent = controls.autoRotate ? '🔄 Auto-spin: ON' : '⏸️ Auto-spin: OFF';
 }
+
+el('btnColorways').onclick = () => {
+  const b = el('btnColorways');
+  const open = b.getAttribute('aria-expanded') !== 'true';
+  b.setAttribute('aria-expanded', String(open));
+  b.textContent = open ? 'Hide' : 'Show';
+  el('colorwayBody').hidden = !open;
+  try { localStorage.setItem(COLORWAYS_KEY, open ? 'open' : 'closed'); } catch (e) {}
+  // the stage's ResizeObserver repaints the 3D view at its new height on its own
+};
+if (storedColorwaysClosed()) el('btnColorways').onclick();
 
 el('btnSpin').onclick = () => { controls.autoRotate = !controls.autoRotate; camTarget = null; syncSpinBtn(); };
 el('btnReset').onclick = () => {
